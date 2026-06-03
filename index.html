@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>OMAC Universal Data Analyzer · S M Baqir</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── CSS VARIABLES ─────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:#0b0f17;--bg2:#111827;--bg3:#1a2035;--bg4:#243050;
+  --border:#2a3550;--border2:#374870;
+  --text:#e8eef8;--text2:#c5d0e8;--muted:#7a8aac;--muted2:#4a5a7a;
+  --accent:#3d7fff;--accent2:#60a0ff;--accent-glow:rgba(61,127,255,0.25);
+  --green:#2dd4a0;--amber:#f5a623;--red:#ff5a5a;--purple:#a78bfa;
+  --card:#111827;--sidebar:#0d1220;
+}
+[data-theme="light"] {
+  --bg:#f0f4fb;--bg2:#ffffff;--bg3:#e8eef8;--bg4:#d8e2f5;
+  --border:#c5d0e8;--border2:#a0b0d0;
+  --text:#0d1220;--text2:#1a2540;--muted:#4a5a7a;--muted2:#8090b0;
+  --accent:#1d5fd4;--accent2:#1d5fd4;--accent-glow:rgba(29,95,212,0.15);
+  --green:#0d9f72;--amber:#c07800;--red:#d43030;--purple:#6d40d4;
+  --card:#ffffff;--sidebar:#f8faff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;transition:background .25s,color .25s;}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── TOPBAR ─────────────────────────────────────────────────────── */
+.topbar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:0 24px;height:56px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:300;
+  box-shadow:0 1px 12px rgba(0,0,0,.3);
+}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.logo-mark{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;color:#fff;letter-spacing:-1px;
+  box-shadow:0 2px 8px var(--accent-glow);
+}
+.topbar-title{font-size:15px;font-weight:700;color:var(--text2);}
+.topbar-sub{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.badge{
+  background:rgba(61,127,255,.12);border:1px solid rgba(61,127,255,.3);
+  color:var(--accent2);font-size:9px;font-weight:700;
+  padding:3px 12px;border-radius:20px;letter-spacing:1.5px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.theme-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.theme-toggle button{
+  padding:5px 14px;font-size:11px;font-weight:700;background:none;border:none;
+  color:var(--muted);cursor:pointer;font-family:'Space Grotesk',sans-serif;
+  transition:all .15s;border-radius:20px;
+}
+.theme-toggle button.active{background:var(--accent);color:#fff;}
+
+/* ── MODULE TABS ────────────────────────────────────────────────── */
+.mod-tabs{
+  background:var(--bg2);border-bottom:2px solid var(--border);
+  padding:0 24px;display:flex;gap:0;position:sticky;top:56px;z-index:299;
+}
+.mod-tab{
+  padding:14px 22px;font-size:12px;font-weight:700;background:none;border:none;
+  border-bottom:3px solid transparent;margin-bottom:-2px;
+  color:var(--muted);cursor:pointer;font-family:'Space Grotesk',sans-serif;
+  transition:all .15s;white-space:nowrap;letter-spacing:.3px;
+}
+.mod-tab:hover{color:var(--text2);background:var(--bg3);}
+.mod-tab.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+
+/* ── MODULE PANELS ─────────────────────────────────────────────── */
+.mod-panel{display:none;padding:24px;max-width:1600px;margin:0 auto;}
+.mod-panel.active{display:block;}
+
+/* ── UPLOAD ZONE ────────────────────────────────────────────────── */
+.upload-zone{
+  background:var(--bg2);border:2px dashed var(--border2);border-radius:16px;
+  padding:40px;text-align:center;cursor:pointer;transition:all .2s;
+  margin-bottom:24px;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-glow);}
+.upload-zone input{display:none;}
+.upload-icon{font-size:40px;margin-bottom:12px;}
+.upload-title{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px;}
+.upload-sub{font-size:12px;color:var(--muted);}
+.upload-btn{
+  display:inline-block;margin-top:14px;padding:9px 24px;
+  background:var(--accent);color:#fff;border-radius:8px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;border:none;
+  transition:background .15s;
+}
+.upload-btn:hover{background:var(--accent2);}
+
+/* ── SECTION CARD ───────────────────────────────────────────────── */
+.section-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:20px 24px;margin-bottom:20px;
+}
+.section-title{
+  font-size:13px;font-weight:700;color:var(--text2);
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+.section-title span{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:2px 10px;font-size:10px;
+  color:var(--muted);font-family:'IBM Plex Mono',monospace;
+}
+
+/* ── GRID LAYOUTS ───────────────────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+
+/* ── FORM CONTROLS ─────────────────────────────────────────────── */
+.field-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;}
+select,input[type="text"],input[type="number"]{
+  width:100%;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--border);background:var(--bg3);
+  color:var(--text);font-size:12px;font-family:'Space Grotesk',sans-serif;
+  outline:none;cursor:pointer;transition:border-color .15s;
+}
+select:focus,input:focus{border-color:var(--accent);}
+select[multiple]{height:auto;min-height:110px;padding:6px;}
+select[multiple] option{padding:5px 8px;border-radius:4px;margin-bottom:2px;}
+select[multiple] option:checked{background:var(--accent);color:#fff;}
+
+/* ── BUTTONS ────────────────────────────────────────────────────── */
+.btn{
+  padding:10px 20px;border-radius:8px;border:none;cursor:pointer;
+  font-size:12px;font-weight:700;font-family:'Space Grotesk',sans-serif;
+  transition:all .15s;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn-success{background:var(--green);color:#fff;}
+.btn-success:hover{opacity:.9;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-outline:hover{background:var(--bg3);}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+
+/* ── STAT CARDS ─────────────────────────────────────────────────── */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--card-accent,var(--accent));
+}
+.stat-label{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;}
+.stat-val{font-size:22px;font-weight:700;color:var(--text);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-pct{font-size:10px;color:var(--muted);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+
+/* ── CHART CARD ─────────────────────────────────────────────────── */
+.chart-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:20px;margin-bottom:20px;
+}
+.chart-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.chart-hdr h3{font-size:14px;font-weight:700;color:var(--text2);}
+.chart-hdr p{font-size:11px;color:var(--muted);margin-top:3px;}
+.chart-tag{
+  background:var(--bg3);border:1px solid var(--border);border-radius:20px;
+  padding:3px 12px;font-size:10px;color:var(--muted);white-space:nowrap;
+  font-family:'IBM Plex Mono',monospace;
+}
+
+/* ── COMPLIANCE TABLE ───────────────────────────────────────────── */
+.compliance-table{width:100%;border-collapse:collapse;font-size:12px;}
+.compliance-table th{
+  background:var(--bg3);color:var(--muted);font-size:9px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;padding:10px 12px;
+  border-bottom:2px solid var(--border);text-align:left;
+}
+.compliance-table td{
+  padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);
+  vertical-align:middle;
+}
+.compliance-table tr:hover td{background:var(--bg3);}
+.compliance-table .total-row td{
+  font-weight:700;background:var(--bg3);color:var(--text);
+  border-top:2px solid var(--border2);
+}
+.pct-bar{display:flex;align-items:center;gap:8px;}
+.pct-track{flex:1;height:6px;background:var(--bg4);border-radius:3px;min-width:60px;}
+.pct-fill{height:100%;border-radius:3px;transition:width .4s;}
+.pct-num{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;min-width:42px;text-align:right;}
+
+/* ── STEP INDICATORS ────────────────────────────────────────────── */
+.steps{display:flex;gap:0;margin-bottom:20px;}
+.step{
+  display:flex;align-items:center;gap:8px;padding:10px 18px;
+  background:var(--bg3);border:1px solid var(--border);
+  font-size:11px;font-weight:700;color:var(--muted);
+  cursor:pointer;transition:all .15s;flex:1;
+}
+.step:first-child{border-radius:10px 0 0 10px;}
+.step:last-child{border-radius:0 10px 10px 0;}
+.step+.step{border-left:none;}
+.step.done{color:var(--green);border-color:var(--green);}
+.step.active{color:var(--accent2);border-color:var(--accent);background:var(--accent-glow);}
+.step-num{
+  width:20px;height:20px;border-radius:50%;background:var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:var(--muted);flex-shrink:0;
+}
+.step.active .step-num{background:var(--accent);color:#fff;}
+.step.done .step-num{background:var(--green);color:#fff;}
+
+/* ── PILL TAGS ──────────────────────────────────────────────────── */
+.pill-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.pill{
+  padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--border);color:var(--muted);
+  cursor:pointer;transition:all .12s;user-select:none;
+}
+.pill.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+.pill.selected-neg{background:rgba(255,90,90,.15);border-color:var(--red);color:var(--red);}
+
+/* ── ALERTS ─────────────────────────────────────────────────────── */
+.alert{padding:12px 16px;border-radius:10px;font-size:12px;margin-bottom:16px;}
+.alert-info{background:rgba(61,127,255,.1);border:1px solid rgba(61,127,255,.3);color:var(--accent2);}
+.alert-success{background:rgba(45,212,160,.1);border:1px solid rgba(45,212,160,.3);color:var(--green);}
+.alert-warn{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:var(--amber);}
+
+/* ── FOOTER ─────────────────────────────────────────────────────── */
+footer{
+  text-align:center;padding:20px;font-size:10px;color:var(--muted2);
+  font-family:'IBM Plex Mono',monospace;border-top:1px solid var(--border);
+  margin-top:20px;
+}
+
+/* ── SHEET SELECTOR ─────────────────────────────────────────────── */
+.sheet-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.sheet-pill{
+  padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--border);color:var(--muted);
+  cursor:pointer;transition:all .12s;
+}
+.sheet-pill.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────── */
+@media(max-width:768px){
+  .grid2,.grid3,.grid4{grid-template-columns:1fr;}
+  .topbar-sub{display:none;}
+  .steps{flex-direction:column;}
+  .step{border-radius:8px!important;border-left:1px solid var(--border)!important;}
+}
+
+/* ── COL MAPPING TABLE ──────────────────────────────────────────── */
+.col-tag-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+.col-tag{
+  padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+  font-family:'IBM Plex Mono',monospace;
+}
+.col-tag.numeric{border-color:var(--green);color:var(--green);}
+.col-tag.text-col{border-color:var(--accent2);color:var(--accent2);}
+.col-tag.date-col{border-color:var(--amber);color:var(--amber);}
+
+/* ─── HIDDEN ────────────────────────────────────────────────────── */
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ TOPBAR ═══════════ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-mark">OA</div>
+    <div>
+      <div class="topbar-title">OMAC Universal Data Analyzer</div>
+      <div class="topbar-sub">OMAC DEVELOPERS · S M BAQIR</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="badge">OMAC ANALYTICS</div>
+    <div class="theme-toggle">
+      <button id="btnDark" class="active" onclick="setTheme('dark')">🌙 Dark</button>
+      <button id="btnLight" onclick="setTheme('light')">☀️ Light</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODULE TABS ═══════════ -->
+<div class="mod-tabs">
+  <button class="mod-tab active" onclick="switchMod(0)">📊 Module 1 — Data Analyzer</button>
+  <button class="mod-tab" onclick="switchMod(1)">✅ Module 2 — Compliance Calculator</button>
+  <button class="mod-tab" onclick="switchMod(2)">⬇️ Module 3 — Export Dashboard</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 1 — UNIVERSAL DATA ANALYZER
+════════════════════════════════════════════════ -->
+<div class="mod-panel active" id="mod0">
+
+  <!-- Upload -->
+  <div class="upload-zone" id="m1UploadZone" onclick="document.getElementById('m1File').click()"
+       ondragover="event.preventDefault();this.classList.add('drag')"
+       ondragleave="this.classList.remove('drag')"
+       ondrop="handleDrop(event,'m1')">
+    <input type="file" id="m1File" accept=".xlsx,.xls,.csv" onchange="loadFile(event,'m1')">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Upload Your Data File</div>
+    <div class="upload-sub">Excel (.xlsx, .xls) or CSV · Any structure · Multiple sheets supported</div>
+    <button class="upload-btn" onclick="event.stopPropagation()">Choose File</button>
+  </div>
+
+  <!-- Sheet selector -->
+  <div id="m1SheetSel" class="section-card hidden">
+    <div class="section-title">📋 Select Sheet <span id="m1FileName"></span></div>
+    <div class="sheet-pills" id="m1SheetPills"></div>
+  </div>
+
+  <!-- Column info -->
+  <div id="m1ColInfo" class="section-card hidden">
+    <div class="section-title">🗂️ Detected Columns</div>
+    <div class="grid2">
+      <div>
+        <div class="field-label">📐 Numeric Columns</div>
+        <div class="col-tag-wrap" id="m1NumCols"></div>
+      </div>
+      <div>
+        <div class="field-label">🔤 Category / Text Columns</div>
+        <div class="col-tag-wrap" id="m1TxtCols"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Axis config -->
+  <div id="m1AxisConfig" class="section-card hidden">
+    <div class="section-title">🎯 Configure Axes <span>Hold Ctrl / Cmd to select multiple</span></div>
+    <div class="grid3">
+      <div>
+        <label class="field-label">X Axis — Group By (Category)</label>
+        <select id="m1XAxis" multiple></select>
+      </div>
+      <div>
+        <label class="field-label">Y Axis — Measure (Numeric)</label>
+        <select id="m1YAxis" multiple></select>
+      </div>
+      <div>
+        <label class="field-label">📅 Slicer / Filter Column (optional)</label>
+        <select id="m1Slicer">
+          <option value="">— None —</option>
+        </select>
+        <div id="m1SlicerVals" class="pill-group" style="margin-top:10px;"></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:14px;">
+      <div>
+        <label class="field-label">Metric</label>
+        <select id="m1Metric">
+          <option value="Mean">Mean</option>
+          <option value="Median">Median</option>
+          <option value="Sum">Sum</option>
+          <option value="Count">Count</option>
+          <option value="Min">Minimum</option>
+          <option value="Max">Maximum</option>
+          <option value="SD">Std Deviation</option>
+          <option value="Range">Range (Max−Min)</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Chart Type</label>
+        <select id="m1ChartType">
+          <option value="bar">Bar Chart</option>
+          <option value="line">Line Chart</option>
+          <option value="scatter">Scatter Plot</option>
+          <option value="box">Box Plot</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="runM1Analysis()">▶ Run Analysis</button>
+      <button class="btn btn-outline" onclick="resetM1()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div id="m1StatsArea" class="hidden">
+    <div class="section-title" style="margin-bottom:12px;">📈 Descriptive Statistics</div>
+    <div id="m1StatCards" class="stat-cards"></div>
+  </div>
+
+  <!-- Chart -->
+  <div id="m1ChartCard" class="chart-card hidden">
+    <div class="chart-hdr">
+      <div>
+        <h3 id="m1ChartTitle">Analysis Chart</h3>
+        <p id="m1ChartSub"></p>
+      </div>
+      <span class="chart-tag" id="m1ChartTag">—</span>
+    </div>
+    <div id="m1Chart"></div>
+  </div>
+
+  <!-- Secondary stats table -->
+  <div id="m1TableCard" class="chart-card hidden">
+    <div class="chart-hdr">
+      <div><h3>Full Statistics Table</h3><p>All metrics per selected X group</p></div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="compliance-table" id="m1StatsTable"></table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 2 — COMPLIANCE CALCULATOR
+════════════════════════════════════════════════ -->
+<div class="mod-panel" id="mod1">
+
+  <!-- Upload -->
+  <div class="upload-zone" id="m2UploadZone" onclick="document.getElementById('m2File').click()"
+       ondragover="event.preventDefault();this.classList.add('drag')"
+       ondragleave="this.classList.remove('drag')"
+       ondrop="handleDrop(event,'m2')">
+    <input type="file" id="m2File" accept=".xlsx,.xls,.csv" onchange="loadFile(event,'m2')">
+    <div class="upload-icon">✅</div>
+    <div class="upload-title">Upload Compliance Data</div>
+    <div class="upload-sub">Hand Hygiene, Audit, Checklist — any compliance-style data</div>
+    <button class="upload-btn" onclick="event.stopPropagation()">Choose File</button>
+  </div>
+
+  <!-- Sheet selector -->
+  <div id="m2SheetSel" class="section-card hidden">
+    <div class="section-title">📋 Select Sheet <span id="m2FileName"></span></div>
+    <div class="sheet-pills" id="m2SheetPills"></div>
+  </div>
+
+  <!-- Step 1: Define columns -->
+  <div id="m2Config" class="hidden">
+    <div class="section-card">
+      <div class="section-title">⚙️ Step 1 — Define Your Compliance Structure</div>
+      <div class="grid3">
+        <div>
+          <label class="field-label">Row Grouping (e.g. Department)</label>
+          <select id="m2RowGroup" multiple style="height:110px;"></select>
+        </div>
+        <div>
+          <label class="field-label">✅ "Done" Value Columns / Labels</label>
+          <div class="alert alert-info" style="margin-bottom:8px;font-size:11px;">
+            Select columns OR tick values below that represent <b>compliance done</b> (e.g. "Hand Rub", "Hand Hygiene", "Yes", "Done")
+          </div>
+          <select id="m2DoneCol">
+            <option value="">— Select column to define Done/Missed —</option>
+          </select>
+          <div id="m2DoneVals" class="pill-group"></div>
+          <div style="margin-top:8px;">
+            <label class="field-label">Done Values (selected pills = Done)</label>
+            <div id="m2DonePills" class="pill-group"></div>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">📅 Time Slicer (Month/Date — optional)</label>
+          <select id="m2TimeSlicer">
+            <option value="">— None —</option>
+          </select>
+          <div id="m2TimeVals" class="pill-group" style="margin-top:8px;"></div>
+          <div style="margin-top:14px;">
+            <label class="field-label">Compliance Target %</label>
+            <input type="number" id="m2Target" value="80" min="0" max="100" style="width:100px;">
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runM2Analysis()">▶ Calculate Compliance</button>
+        <button class="btn btn-outline" onclick="resetM2()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compliance stats -->
+  <div id="m2StatsArea" class="hidden">
+    <div id="m2StatCards" class="stat-cards"></div>
+  </div>
+
+  <!-- Compliance table -->
+  <div id="m2TableCard" class="chart-card hidden">
+    <div class="chart-hdr">
+      <div><h3 id="m2TableTitle">Compliance by Group</h3><p id="m2TableSub"></p></div>
+      <span class="chart-tag" id="m2TableTag">% Compliance</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="compliance-table" id="m2Table"></table>
+    </div>
+  </div>
+
+  <!-- Compliance charts -->
+  <div id="m2Charts" class="hidden">
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <div><h3>Compliance by Group</h3><p>Bar chart showing compliance % vs target</p></div>
+      </div>
+      <div id="m2BarChart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <div><h3>Compliance Trend Over Time</h3><p>Run chart — overall compliance % by time period</p></div>
+        <span class="chart-tag" id="m2TrendTag">Monthly</span>
+      </div>
+      <div id="m2TrendChart"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 3 — EXPORT
+════════════════════════════════════════════════ -->
+<div class="mod-panel" id="mod2">
+  <div class="section-card">
+    <div class="section-title">⬇️ Export Interactive Dashboard</div>
+    <div class="alert alert-info">
+      Run your analysis in Module 1 and/or Module 2 first, then export a fully standalone HTML dashboard with all charts, cards, and theme toggle — shareable with anyone, no internet needed.
+    </div>
+    <div class="grid2" style="margin-top:16px;">
+      <div>
+        <div class="field-label">Dashboard Title</div>
+        <input type="text" id="exportTitle" value="OMAC Analytics Dashboard" placeholder="Enter dashboard title">
+      </div>
+      <div>
+        <div class="field-label">Subtitle / Department</div>
+        <input type="text" id="exportSub" value="" placeholder="e.g. Quality & Patient Safety · SKMCH&RC">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:14px;">
+      <div>
+        <div class="field-label">Include in Export</div>
+        <div class="pill-group">
+          <label><input type="checkbox" id="expM1" checked> Module 1 — Data Analysis</label><br><br>
+          <label><input type="checkbox" id="expM2" checked> Module 2 — Compliance</label>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Default Theme</div>
+        <select id="expTheme">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-success" onclick="exportDashboard()">⬇️ Download HTML Dashboard</button>
+      <button class="btn btn-outline" onclick="previewDashboard()">👁️ Preview</button>
+    </div>
+  </div>
+
+  <div id="exportStatus" class="hidden"></div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  OMAC DEVELOPERS · S M BAQIR &nbsp;|&nbsp; Universal Data Analyzer v1.0 &nbsp;|&nbsp; OMAC Analytics
+</footer>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const STATE = {
+  m1: { wb:null, df:[], cols:[], numCols:[], txtCols:[], sheet:'', file:'' },
+  m2: { wb:null, df:[], cols:[], sheet:'', file:'' },
+  m1Results: null,
+  m2Results: null,
+};
+
+// ══════════════════════════════════════════════
+//  THEME
+// ══════════════════════════════════════════════
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('btnDark').classList.toggle('active',t==='dark');
+  document.getElementById('btnLight').classList.toggle('active',t==='light');
+  replotAll();
+}
+function pc(){
+  const d=document.documentElement.getAttribute('data-theme')==='dark';
+  return{
+    bg:d?'#111827':'#ffffff',
+    text:d?'#e8eef8':'#0d1220',
+    grid:d?'rgba(42,53,80,.5)':'rgba(197,208,232,.5)',
+    line:d?'#2a3550':'#c5d0e8',
+    muted:d?'#7a8aac':'#4a5a7a',
+  };
+}
+
+// ══════════════════════════════════════════════
+//  MODULE SWITCHING
+// ══════════════════════════════════════════════
+function switchMod(i){
+  document.querySelectorAll('.mod-tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.mod-panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+
+// ══════════════════════════════════════════════
+//  FILE LOADING
+// ══════════════════════════════════════════════
+function handleDrop(e,mod){
+  e.preventDefault();
+  document.getElementById(mod+'UploadZone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) parseFile(f,mod);
+}
+function loadFile(e,mod){
+  const f=e.target.files[0];
+  if(f) parseFile(f,mod);
+}
+
+function parseFile(file,mod){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const data=new Uint8Array(ev.target.result);
+    const wb=XLSX.read(data,{type:'array',cellDates:true});
+    STATE[mod].wb=wb;
+    STATE[mod].file=file.name;
+    renderSheetSelector(mod,wb,file.name);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderSheetSelector(mod,wb,fname){
+  const cont=document.getElementById(mod+'SheetSel');
+  document.getElementById(mod+'FileName').textContent=fname;
+  const pills=document.getElementById(mod+'SheetPills');
+  pills.innerHTML='';
+  wb.SheetNames.forEach((s,i)=>{
+    const btn=document.createElement('button');
+    btn.className='sheet-pill'+(i===0?' active':'');
+    btn.textContent=s;
+    btn.onclick=()=>{
+      pills.querySelectorAll('.sheet-pill').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      loadSheet(mod,wb,s);
+    };
+    pills.appendChild(btn);
+  });
+  cont.classList.remove('hidden');
+  loadSheet(mod,wb,wb.SheetNames[0]);
+}
+
+function loadSheet(mod,wb,sheet){
+  const ws=wb.Sheets[sheet];
+  const raw=XLSX.utils.sheet_to_json(ws,{defval:null,raw:false});
+  STATE[mod].df=raw;
+  STATE[mod].sheet=sheet;
+  if(!raw.length) return;
+
+  const cols=Object.keys(raw[0]);
+  STATE[mod].cols=cols;
+
+  if(mod==='m1') renderM1ColumnConfig(raw,cols);
+  if(mod==='m2') renderM2Config(raw,cols);
+}
+
+// ══════════════════════════════════════════════
+//  MODULE 1 SETUP
+// ══════════════════════════════════════════════
+function isNumeric(vals){
+  const nonNull=vals.filter(v=>v!==null&&v!=='');
+  if(!nonNull.length) return false;
+  return nonNull.filter(v=>!isNaN(parseFloat(v))).length/nonNull.length>0.7;
+}
+
+function renderM1ColumnConfig(df,cols){
+  const numCols=[],txtCols=[];
+  cols.forEach(c=>{
+    const vals=df.map(r=>r[c]);
+    (isNumeric(vals)?numCols:txtCols).push(c);
+  });
+  STATE.m1.numCols=numCols; STATE.m1.txtCols=txtCols;
+
+  // Col info display
+  document.getElementById('m1NumCols').innerHTML=numCols.map(c=>`<span class="col-tag numeric">${c}</span>`).join('');
+  document.getElementById('m1TxtCols').innerHTML=txtCols.map(c=>`<span class="col-tag text-col">${c}</span>`).join('');
+  document.getElementById('m1ColInfo').classList.remove('hidden');
+
+  // Axis selects
+  const xSel=document.getElementById('m1XAxis');
+  const ySel=document.getElementById('m1YAxis');
+  const slicerSel=document.getElementById('m1Slicer');
+  xSel.innerHTML=cols.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  ySel.innerHTML=numCols.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  slicerSel.innerHTML='<option value="">— None —</option>'+
+    cols.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+
+  slicerSel.onchange=()=>renderSlicerVals('m1',STATE.m1.df,slicerSel.value);
+
+  // Auto-select first items
+  if(txtCols.length) xSel.options[cols.indexOf(txtCols[0])].selected=true;
+  if(numCols.length) ySel.options[0].selected=true;
+
+  document.getElementById('m1AxisConfig').classList.remove('hidden');
+}
+
+function renderSlicerVals(mod,df,col){
+  const wrap=document.getElementById(mod+'SlicerVals');
+  wrap.innerHTML='';
+  if(!col) return;
+  const vals=[...new Set(df.map(r=>r[col]).filter(v=>v!==null&&v!==''))].sort();
+  vals.forEach(v=>{
+    const p=document.createElement('span');
+    p.className='pill selected';
+    p.textContent=v;
+    p.onclick=()=>p.classList.toggle('selected');
+    wrap.appendChild(p);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  MODULE 1 ANALYSIS
+// ══════════════════════════════════════════════
+function getSelected(selectEl){
+  return Array.from(selectEl.selectedOptions).map(o=>o.value);
+}
+
+function calcStat(vals,metric){
+  const v=vals.map(x=>parseFloat(x)).filter(x=>!isNaN(x));
+  if(!v.length) return null;
+  if(metric==='Mean') return v.reduce((a,b)=>a+b,0)/v.length;
+  if(metric==='Median'){const s=[...v].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+  if(metric==='Sum') return v.reduce((a,b)=>a+b,0);
+  if(metric==='Count') return v.length;
+  if(metric==='Min') return Math.min(...v);
+  if(metric==='Max') return Math.max(...v);
+  if(metric==='SD'){const m=v.reduce((a,b)=>a+b,0)/v.length;return Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/(v.length-1||1));}
+  if(metric==='Range') return Math.max(...v)-Math.min(...v);
+  if(metric==='Mode'){const freq={};v.forEach(x=>{freq[x]=(freq[x]||0)+1;});return +Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0];}
+  return null;
+}
+
+function allStats(vals){
+  const v=vals.map(x=>parseFloat(x)).filter(x=>!isNaN(x));
+  if(!v.length) return null;
+  const mean=calcStat(v,'Mean');
+  return{
+    n:v.length,mean,median:calcStat(v,'Median'),mode:calcStat(v,'Mode'),
+    min:calcStat(v,'Min'),max:calcStat(v,'Max'),
+    sd:calcStat(v,'SD'),range:calcStat(v,'Range'),
+    sum:calcStat(v,'Sum'),
+  };
+}
+
+function runM1Analysis(){
+  const df=STATE.m1.df;
+  const xCols=getSelected(document.getElementById('m1XAxis'));
+  const yCols=getSelected(document.getElementById('m1YAxis'));
+  const slicerCol=document.getElementById('m1Slicer').value;
+  const metric=document.getElementById('m1Metric').value;
+  const chartType=document.getElementById('m1ChartType').value;
+
+  if(!xCols.length||!yCols.length){alert('Please select at least one X and one Y column.');return;}
+
+  // Apply slicer filter
+  let filtered=df;
+  if(slicerCol){
+    const sel=[...document.getElementById('m1SlicerVals').querySelectorAll('.pill.selected')].map(p=>p.textContent);
+    if(sel.length) filtered=df.filter(r=>sel.includes(String(r[slicerCol])));
+  }
+
+  // Build composite X key
+  const xKey=r=>xCols.map(c=>r[c]).join(' | ');
+  const groups=[...new Set(filtered.map(xKey))].filter(Boolean);
+
+  // For each Y col, for each group — compute stat
+  const results={};
+  yCols.forEach(yc=>{
+    results[yc]={};
+    groups.forEach(g=>{
+      const rows=filtered.filter(r=>xKey(r)===g);
+      const vals=rows.map(r=>r[yc]).filter(v=>v!==null&&v!=='');
+      results[yc][g]=calcStat(vals,metric);
+    });
+  });
+
+  STATE.m1Results={results,groups,yCols,metric,chartType,xCols,filtered};
+
+  renderM1Stats(filtered,yCols,groups,results,metric);
+  renderM1Chart(results,groups,yCols,metric,chartType);
+  renderM1Table(results,groups,yCols,metric,filtered,xCols);
+}
+
+const ACCENT_COLORS=['#3d7fff','#2dd4a0','#f5a623','#a78bfa','#ff5a5a','#22d3ee','#f472b6','#fb923c'];
+
+function renderM1Stats(df,yCols,groups,results,metric){
+  const area=document.getElementById('m1StatsArea');
+  const cards=document.getElementById('m1StatCards');
+  cards.innerHTML='';
+
+  // Overall stats per Y col
+  yCols.forEach((yc,ci)=>{
+    const allVals=df.map(r=>r[yc]).filter(v=>v!==null&&v!=='');
+    const s=allStats(allVals);
+    if(!s) return;
+    const total=s.sum;
+
+    const statDefs=[
+      {label:'Mean',val:s.mean,pct:null,color:'--accent'},
+      {label:'Median',val:s.median,pct:null,color:'--green'},
+      {label:'Mode',val:s.mode,pct:null,color:'--purple'},
+      {label:'Std Dev',val:s.sd,pct:null,color:'--amber'},
+      {label:'Min',val:s.min,pct:null,color:'--muted'},
+      {label:'Max',val:s.max,pct:null,color:'--red'},
+      {label:'Range',val:s.range,pct:null,color:'--muted'},
+      {label:'Count (n)',val:s.n,pct:null,color:'--accent2'},
+    ];
+
+    const hdr=document.createElement('div');
+    hdr.style.cssText='font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin:10px 0 8px;grid-column:1/-1;';
+    hdr.textContent=`📊 ${yc}`;
+    cards.appendChild(hdr);
+
+    statDefs.forEach(sd=>{
+      if(sd.val===null||sd.val===undefined) return;
+      const card=document.createElement('div');
+      card.className='stat-card';
+      const pctOfSum=total>0?(sd.val/total*100).toFixed(1)+'% of total':'';
+      card.style.setProperty('--card-accent',ACCENT_COLORS[ci%ACCENT_COLORS.length]);
+      card.innerHTML=`
+        <div class="stat-label">${sd.label}</div>
+        <div class="stat-val">${typeof sd.val==='number'?sd.val.toFixed(sd.label==='Count (n)'?0:2):sd.val}</div>
+        ${sd.label!=='Count (n)'&&sd.label!=='Mode'&&total>0?`<div class="stat-pct">${pctOfSum}</div>`:'<div class="stat-pct">n = ${s.n}</div>'}
+      `;
+      cards.appendChild(card);
+    });
+  });
+
+  area.classList.remove('hidden');
+}
+
+function renderM1Chart(results,groups,yCols,metric,chartType){
+  const card=document.getElementById('m1ChartCard');
+  const c=pc();
+  const traces=[];
+
+  yCols.forEach((yc,ci)=>{
+    const y=groups.map(g=>results[yc][g]!==null?+results[yc][g].toFixed(2):null);
+    const color=ACCENT_COLORS[ci%ACCENT_COLORS.length];
+    if(chartType==='bar'){
+      traces.push({type:'bar',name:yc,x:groups,y,marker:{color,opacity:0.85},
+        text:y.map(v=>v!==null?v.toFixed(2):''),textposition:'outside',
+        hovertemplate:'<b>%{x}</b><br>'+yc+': %{y:.2f}<extra></extra>'});
+    } else if(chartType==='line'){
+      traces.push({type:'scatter',mode:'lines+markers+text',name:yc,x:groups,y,
+        text:y.map(v=>v!==null?v.toFixed(2):''),textposition:'top center',
+        line:{color,width:2.5,shape:'spline'},marker:{size:8,color},
+        textfont:{size:10,color:c.text},
+        hovertemplate:'<b>%{x}</b><br>'+yc+': %{y:.2f}<extra></extra>'});
+    } else if(chartType==='scatter'){
+      traces.push({type:'scatter',mode:'markers',name:yc,x:groups,y,
+        marker:{size:12,color,opacity:0.8},
+        hovertemplate:'<b>%{x}</b><br>'+yc+': %{y:.2f}<extra></extra>'});
+    } else if(chartType==='box'){
+      // For box, use raw values
+      traces.push({type:'box',name:yc,y:STATE.m1.filtered.map(r=>parseFloat(r[yc])).filter(v=>!isNaN(v)),
+        marker:{color},boxpoints:'outliers'});
+    }
+  });
+
+  const h=Math.max(400,groups.length*40+150);
+  const layout={
+    height:h,paper_bgcolor:c.bg,plot_bgcolor:c.bg,
+    font:{family:'Space Grotesk,sans-serif',color:c.text,size:11},
+    margin:{l:80,r:30,t:40,b:chartType==='box'?60:Math.max(80,groups.reduce((a,b)=>Math.max(a,b.length),0)*4+40)},
+    legend:{x:1,xanchor:'right',y:1,bgcolor:'rgba(0,0,0,0)',font:{size:10}},
+    xaxis:{gridcolor:c.grid,linecolor:c.line,tickfont:{size:10},tickangle:groups.length>6?-35:0},
+    yaxis:{title:metric,gridcolor:c.grid,linecolor:c.line,tickfont:{size:10}},
+    barmode:'group',
+  };
+
+  Plotly.newPlot('m1Chart',traces,layout,{responsive:true,displayModeBar:true});
+  document.getElementById('m1ChartTitle').textContent=`${metric} by ${STATE.m1Results.xCols.join(' + ')}`;
+  document.getElementById('m1ChartSub').textContent=`Y: ${yCols.join(', ')}`;
+  document.getElementById('m1ChartTag').textContent=chartType.charAt(0).toUpperCase()+chartType.slice(1)+' Chart';
+  card.classList.remove('hidden');
+}
+
+function renderM1Table(results,groups,yCols,metric,df,xCols){
+  const tbl=document.getElementById('m1StatsTable');
+  // Build header
+  let html=`<thead><tr><th>${xCols.join(' / ')}</th>`;
+  yCols.forEach(yc=>html+=`<th>${escHtml(yc)} — ${metric}</th><th>Mean</th><th>Median</th><th>SD</th><th>Min</th><th>Max</th><th>n</th>`);
+  html+=`</tr></thead><tbody>`;
+
+  const xKey=r=>xCols.map(c=>r[c]).join(' | ');
+
+  groups.forEach(g=>{
+    html+=`<tr><td style="font-weight:600">${escHtml(g)}</td>`;
+    yCols.forEach(yc=>{
+      const rows=df.filter(r=>xKey(r)===g);
+      const vals=rows.map(r=>r[yc]).filter(v=>v!==null&&v!=='');
+      const s=allStats(vals);
+      if(!s){html+=`<td colspan="7" style="color:var(--muted)">—</td>`;return;}
+      const metricVal=results[yc][g];
+      html+=`
+        <td style="font-weight:700;color:var(--accent2)">${metricVal!==null?metricVal.toFixed(2):'—'}</td>
+        <td>${s.mean.toFixed(2)}</td><td>${s.median.toFixed(2)}</td>
+        <td>${s.sd.toFixed(2)}</td><td>${s.min.toFixed(2)}</td>
+        <td>${s.max.toFixed(2)}</td><td>${s.n}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody>`;
+  tbl.innerHTML=html;
+  document.getElementById('m1TableCard').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════
+//  MODULE 2 SETUP
+// ══════════════════════════════════════════════
+function renderM2Config(df,cols){
+  const rowSel=document.getElementById('m2RowGroup');
+  const doneSel=document.getElementById('m2DoneCol');
+  const timeSel=document.getElementById('m2TimeSlicer');
+
+  rowSel.innerHTML=cols.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  doneSel.innerHTML='<option value="">— Select column —</option>'+cols.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  timeSel.innerHTML='<option value="">— None —</option>'+cols.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+
+  doneSel.onchange=()=>renderDonePills(df,doneSel.value);
+  timeSel.onchange=()=>renderM2TimeVals(df,timeSel.value);
+
+  document.getElementById('m2Config').classList.remove('hidden');
+}
+
+function renderDonePills(df,col){
+  const wrap=document.getElementById('m2DonePills');
+  wrap.innerHTML='';
+  if(!col) return;
+  const vals=[...new Set(df.map(r=>r[col]).filter(v=>v!==null&&v!==''))].sort();
+  vals.forEach(v=>{
+    const p=document.createElement('span');
+    p.className='pill';
+    p.textContent=v;
+    p.onclick=()=>p.classList.toggle('selected');
+    wrap.appendChild(p);
+  });
+  // Auto-select values that look like "done" keywords
+  const doneKeywords=['hand rub','hand hygiene','yes','done','present','comply','wash'];
+  wrap.querySelectorAll('.pill').forEach(p=>{
+    if(doneKeywords.some(k=>p.textContent.toLowerCase().includes(k)))
+      p.classList.add('selected');
+  });
+}
+
+function renderM2TimeVals(df,col){
+  const wrap=document.getElementById('m2TimeVals');
+  wrap.innerHTML='';
+  if(!col) return;
+  const vals=[...new Set(df.map(r=>r[col]).filter(v=>v!==null&&v!==''))].sort();
+  vals.forEach(v=>{
+    const p=document.createElement('span');
+    p.className='pill selected';
+    p.textContent=v;
+    p.onclick=()=>p.classList.toggle('selected');
+    wrap.appendChild(p);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  MODULE 2 ANALYSIS
+// ══════════════════════════════════════════════
+function runM2Analysis(){
+  const df=STATE.m2.df;
+  const rowGroups=getSelected(document.getElementById('m2RowGroup'));
+  const doneCol=document.getElementById('m2DoneCol').value;
+  const doneVals=[...document.getElementById('m2DonePills').querySelectorAll('.pill.selected')].map(p=>p.textContent);
+  const timeCol=document.getElementById('m2TimeSlicer').value;
+  const target=parseFloat(document.getElementById('m2Target').value)||80;
+
+  if(!rowGroups.length){alert('Please select at least one Row Grouping column.');return;}
+  if(!doneCol){alert('Please select the compliance action column (Done/Missed column).');return;}
+  if(!doneVals.length){alert('Please select which values represent "Done" (compliance).');return;}
+
+  const isDone=r=>doneVals.includes(String(r[doneCol]));
+
+  // Apply time filter
+  let filtered=df;
+  if(timeCol){
+    const sel=[...document.getElementById('m2TimeVals').querySelectorAll('.pill.selected')].map(p=>p.textContent);
+    if(sel.length) filtered=df.filter(r=>sel.includes(String(r[timeCol])));
+  }
+
+  // Build group key
+  const gKey=r=>rowGroups.map(c=>r[c]).join(' | ');
+  const groups=[...new Set(filtered.map(gKey))].filter(Boolean).sort();
+
+  // Per group stats
+  const rows=groups.map(g=>{
+    const recs=filtered.filter(r=>gKey(r)===g);
+    const total=recs.length;
+    const done=recs.filter(isDone).length;
+    const missed=total-done;
+    const pct=total>0?((done/total)*100):0;
+    return{group:g,total,done,missed,pct};
+  });
+
+  // Overall
+  const grandTotal=rows.reduce((a,r)=>a+r.total,0);
+  const grandDone=rows.reduce((a,r)=>a+r.done,0);
+  const grandMissed=rows.reduce((a,r)=>a+r.missed,0);
+  const grandPct=grandTotal>0?((grandDone/grandTotal)*100):0;
+
+  // Time trend
+  let trendData=null;
+  if(timeCol){
+    const times=[...new Set(filtered.map(r=>r[timeCol]).filter(v=>v!==null&&v!==''))].sort();
+    trendData=times.map(t=>{
+      const recs=filtered.filter(r=>String(r[timeCol])===String(t));
+      const total=recs.length;
+      const done=recs.filter(isDone).length;
+      return{time:t,pct:total>0?(done/total*100):0,total,done};
+    });
+  }
+
+  STATE.m2Results={rows,grandTotal,grandDone,grandMissed,grandPct,trendData,target,rowGroups};
+  renderM2Output(rows,grandTotal,grandDone,grandMissed,grandPct,trendData,target,rowGroups);
+}
+
+function renderM2Output(rows,grandTotal,grandDone,grandMissed,grandPct,trendData,target,rowGroups){
+  // Stat cards
+  const cards=document.getElementById('m2StatCards');
+  const pctColor=grandPct>=target?'--green':grandPct>=target-10?'--amber':'--red';
+  cards.innerHTML=`
+    <div class="stat-card" style="--card-accent:var(${pctColor})">
+      <div class="stat-label">Overall Compliance</div>
+      <div class="stat-val" style="color:var(${pctColor})">${grandPct.toFixed(1)}%</div>
+      <div class="stat-pct">Target: ${target}%</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--green)">
+      <div class="stat-label">Total Done</div>
+      <div class="stat-val" style="color:var(--green)">${grandDone}</div>
+      <div class="stat-pct">${(grandDone/grandTotal*100).toFixed(1)}% of total</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--red)">
+      <div class="stat-label">Total Missed</div>
+      <div class="stat-val" style="color:var(--red)">${grandMissed}</div>
+      <div class="stat-pct">${(grandMissed/grandTotal*100).toFixed(1)}% of total</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--accent)">
+      <div class="stat-label">Total Observations</div>
+      <div class="stat-val">${grandTotal}</div>
+      <div class="stat-pct">${rows.length} groups</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--amber)">
+      <div class="stat-label">Groups ≥ Target</div>
+      <div class="stat-val" style="color:var(--amber)">${rows.filter(r=>r.pct>=target).length}</div>
+      <div class="stat-pct">of ${rows.length} groups</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--purple)">
+      <div class="stat-label">Best Group</div>
+      <div class="stat-val" style="color:var(--purple);font-size:14px;">${rows.reduce((a,b)=>b.pct>a.pct?b:a).pct.toFixed(1)}%</div>
+      <div class="stat-pct" style="word-break:break-all">${escHtml(rows.reduce((a,b)=>b.pct>a.pct?b:a).group.split(' | ')[0])}</div>
+    </div>
+  `;
+  document.getElementById('m2StatsArea').classList.remove('hidden');
+
+  // Table
+  const tbl=document.getElementById('m2Table');
+  let html=`<thead><tr>
+    <th>${rowGroups.join(' / ')}</th>
+    <th>Total</th><th>Done ✅</th><th>Missed ❌</th>
+    <th>Compliance %</th>
+  </tr></thead><tbody>`;
+
+  rows.sort((a,b)=>b.pct-a.pct).forEach(r=>{
+    const pctColor=r.pct>=target?'var(--green)':r.pct>=target-10?'var(--amber)':'var(--red)';
+    const barW=Math.min(100,r.pct).toFixed(1);
+    html+=`<tr>
+      <td style="font-weight:600">${escHtml(r.group)}</td>
+      <td>${r.total}</td>
+      <td style="color:var(--green)">${r.done}</td>
+      <td style="color:var(--red)">${r.missed}</td>
+      <td>
+        <div class="pct-bar">
+          <div class="pct-track">
+            <div class="pct-fill" style="width:${barW}%;background:${pctColor}"></div>
+          </div>
+          <span class="pct-num" style="color:${pctColor}">${r.pct.toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  // Grand total row
+  const gtColor=grandPct>=target?'var(--green)':grandPct>=target-10?'var(--amber)':'var(--red)';
+  html+=`</tbody><tfoot><tr class="total-row">
+    <td>📊 GRAND TOTAL</td>
+    <td>${grandTotal}</td>
+    <td style="color:var(--green)">${grandDone}</td>
+    <td style="color:var(--red)">${grandMissed}</td>
+    <td><div class="pct-bar">
+      <div class="pct-track"><div class="pct-fill" style="width:${Math.min(100,grandPct).toFixed(1)}%;background:${gtColor}"></div></div>
+      <span class="pct-num" style="color:${gtColor}">${grandPct.toFixed(1)}%</span>
+    </div></td>
+  </tr></tfoot>`;
+  tbl.innerHTML=html;
+  document.getElementById('m2TableTitle').textContent=`Compliance by ${rowGroups.join(' + ')}`;
+  document.getElementById('m2TableSub').textContent=`${grandDone} done / ${grandTotal} total = ${grandPct.toFixed(1)}%`;
+  document.getElementById('m2TableCard').classList.remove('hidden');
+
+  // Bar chart
+  const c=pc();
+  const sortedRows=[...rows].sort((a,b)=>b.pct-a.pct);
+  const barColors=sortedRows.map(r=>r.pct>=target?'#2dd4a0':r.pct>=target-10?'#f5a623':'#ff5a5a');
+  Plotly.newPlot('m2BarChart',[
+    {type:'bar',x:sortedRows.map(r=>r.group),y:sortedRows.map(r=>+r.pct.toFixed(1)),
+     marker:{color:barColors,opacity:0.85},text:sortedRows.map(r=>r.pct.toFixed(1)+'%'),
+     textposition:'outside',name:'Compliance %',
+     hovertemplate:'<b>%{x}</b><br>Compliance: %{y:.1f}%<extra></extra>'},
+    {type:'scatter',mode:'lines',x:sortedRows.map(r=>r.group),y:sortedRows.map(()=>target),
+     line:{color:'#f5a623',width:2,dash:'dot'},name:`Target ${target}%`,hoverinfo:'skip'},
+  ],{
+    height:380,paper_bgcolor:c.bg,plot_bgcolor:c.bg,
+    font:{family:'Space Grotesk,sans-serif',color:c.text,size:11},
+    margin:{l:60,r:30,t:40,b:Math.max(80,sortedRows.reduce((a,r)=>Math.max(a,r.group.length),0)*4+30)},
+    xaxis:{gridcolor:c.grid,linecolor:c.line,tickangle:sortedRows.length>5?-35:0,tickfont:{size:10}},
+    yaxis:{title:'Compliance %',range:[0,115],gridcolor:c.grid,linecolor:c.line},
+    legend:{x:1,xanchor:'right',y:1,bgcolor:'rgba(0,0,0,0)'},
+  },{responsive:true,displayModeBar:false});
+
+  // Trend chart
+  if(trendData&&trendData.length>1){
+    Plotly.newPlot('m2TrendChart',[
+      {type:'scatter',mode:'lines+markers+text',
+       x:trendData.map(t=>t.time),y:trendData.map(t=>+t.pct.toFixed(1)),
+       text:trendData.map(t=>t.pct.toFixed(1)+'%'),textposition:'top center',
+       textfont:{size:11,color:c.text},
+       line:{color:'#3d7fff',width:2.5,shape:'spline'},
+       marker:{size:9,color:trendData.map(t=>t.pct>=target?'#2dd4a0':'#ff5a5a'),
+               line:{color:c.bg,width:2}},
+       name:'Compliance %',connectgaps:true,
+       hovertemplate:'<b>%{x}</b><br>Compliance: %{y:.1f}%<extra></extra>'},
+      {type:'scatter',mode:'lines',x:trendData.map(t=>t.time),y:trendData.map(()=>target),
+       line:{color:'#f5a623',width:1.5,dash:'dot'},name:`Target ${target}%`,hoverinfo:'skip'},
+    ],{
+      height:320,paper_bgcolor:c.bg,plot_bgcolor:c.bg,
+      font:{family:'Space Grotesk,sans-serif',color:c.text,size:11},
+      margin:{l:60,r:30,t:30,b:60},
+      xaxis:{title:'Period',gridcolor:c.grid,linecolor:c.line,tickfont:{size:10}},
+      yaxis:{title:'Compliance %',range:[0,108],gridcolor:c.grid,linecolor:c.line},
+      legend:{x:1,xanchor:'right',y:1,bgcolor:'rgba(0,0,0,0)'},
+    },{responsive:true,displayModeBar:false});
+  } else {
+    document.getElementById('m2TrendChart').innerHTML=`<div class="alert alert-info" style="margin:12px">No time column selected or only one time period — trend chart requires a time slicer with 2+ periods.</div>`;
+  }
+
+  document.getElementById('m2Charts').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════
+//  REPLOT ALL (theme change)
+// ══════════════════════════════════════════════
+function replotAll(){
+  if(STATE.m1Results){
+    const{results,groups,yCols,metric,chartType}=STATE.m1Results;
+    renderM1Chart(results,groups,yCols,metric,chartType);
+  }
+  if(STATE.m2Results){
+    const{rows,grandTotal,grandDone,grandMissed,grandPct,trendData,target,rowGroups}=STATE.m2Results;
+    renderM2Output(rows,grandTotal,grandDone,grandMissed,grandPct,trendData,target,rowGroups);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  RESETS
+// ══════════════════════════════════════════════
+function resetM1(){
+  STATE.m1={wb:null,df:[],cols:[],numCols:[],txtCols:[],sheet:'',file:''};
+  STATE.m1Results=null;
+  ['m1SheetSel','m1ColInfo','m1AxisConfig','m1StatsArea','m1ChartCard','m1TableCard'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('m1File').value='';
+}
+function resetM2(){
+  STATE.m2={wb:null,df:[],cols:[],sheet:'',file:''};
+  STATE.m2Results=null;
+  ['m2SheetSel','m2Config','m2StatsArea','m2TableCard','m2Charts'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('m2File').value='';
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════
+function exportDashboard(){
+  const title=document.getElementById('exportTitle').value||'OMAC Analytics Dashboard';
+  const sub=document.getElementById('exportSub').value||'';
+  const theme=document.getElementById('expTheme').value;
+  const incM1=document.getElementById('expM1').checked && STATE.m1Results;
+  const incM2=document.getElementById('expM2').checked && STATE.m2Results;
+
+  if(!incM1&&!incM2){
+    document.getElementById('exportStatus').className='alert alert-warn';
+    document.getElementById('exportStatus').textContent='⚠️ Run analysis in Module 1 or Module 2 first before exporting.';
+    document.getElementById('exportStatus').classList.remove('hidden');
+    return;
+  }
+
+  // Collect Plotly chart data
+  const charts={};
+  if(incM1){
+    try{charts.m1=Plotly.toImage('m1Chart',{format:'svg'});}catch(e){}
+  }
+
+  // Build export HTML
+  let sections='';
+
+  if(incM1 && STATE.m1Results){
+    const{results,groups,yCols,metric,xCols,filtered}=STATE.m1Results;
+    let statsHTML='<div class="stat-cards">';
+    yCols.forEach((yc,ci)=>{
+      const allVals=filtered.map(r=>r[yc]).filter(v=>v!==null&&v!=='');
+      const s=allStats(allVals);
+      if(!s) return;
+      const accentColors=['#3d7fff','#2dd4a0','#f5a623','#a78bfa','#ff5a5a'];
+      const ac=accentColors[ci%accentColors.length];
+      statsHTML+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;border-top:3px solid ${ac}">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px">${escHtml(yc)} — Mean</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);font-family:monospace">${s.mean.toFixed(2)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Median: ${s.median.toFixed(2)} · SD: ${s.sd.toFixed(2)}</div>
+      </div>`;
+    });
+    statsHTML+='</div>';
+
+    // Build table rows
+    let tblHTML='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--bg3)"><th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">'
+      +escHtml(xCols.join(' / '))+'</th>';
+    yCols.forEach(yc=>tblHTML+=`<th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">${escHtml(yc)} — ${metric}</th>`);
+    tblHTML+='</tr></thead><tbody>';
+    groups.forEach(g=>{
+      tblHTML+=`<tr><td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600">${escHtml(g)}</td>`;
+      yCols.forEach(yc=>{
+        const v=results[yc][g];
+        tblHTML+=`<td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--accent2);font-family:monospace">${v!==null?v.toFixed(2):'—'}</td>`;
+      });
+      tblHTML+='</tr>';
+    });
+    tblHTML+='</tbody></table>';
+
+    sections+=`<div style="margin-bottom:32px">
+      <h2 style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)">📊 Data Analysis — ${escHtml(metric)} by ${escHtml(xCols.join(', '))}</h2>
+      ${statsHTML}
+      <div id="expM1Chart" style="margin-top:20px"></div>
+      <div style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;overflow-x:auto">${tblHTML}</div>
+    </div>`;
+  }
+
+  if(incM2 && STATE.m2Results){
+    const{rows,grandTotal,grandDone,grandMissed,grandPct,trendData,target,rowGroups}=STATE.m2Results;
+    const gtColor=grandPct>=target?'#2dd4a0':grandPct>=target-10?'#f5a623':'#ff5a5a';
+    let tblHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--bg3)">
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">${escHtml(rowGroups.join(' / '))}</th>
+      <th style="padding:8px 12px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">Total</th>
+      <th style="padding:8px 12px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">Done</th>
+      <th style="padding:8px 12px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">Missed</th>
+      <th style="padding:8px 12px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)">Compliance %</th>
+    </tr></thead><tbody>`;
+    [...rows].sort((a,b)=>b.pct-a.pct).forEach(r=>{
+      const pc=r.pct>=target?'#2dd4a0':r.pct>=target-10?'#f5a623':'#ff5a5a';
+      tblHTML+=`<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600">${escHtml(r.group)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center">${r.total}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;color:#2dd4a0">${r.done}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;color:#ff5a5a">${r.missed}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:700;color:${pc};font-family:monospace">${r.pct.toFixed(1)}%</td>
+      </tr>`;
+    });
+    tblHTML+=`<tr style="background:var(--bg3);font-weight:700">
+      <td style="padding:10px 12px">📊 GRAND TOTAL</td>
+      <td style="padding:10px 12px;text-align:center">${grandTotal}</td>
+      <td style="padding:10px 12px;text-align:center;color:#2dd4a0">${grandDone}</td>
+      <td style="padding:10px 12px;text-align:center;color:#ff5a5a">${grandMissed}</td>
+      <td style="padding:10px 12px;font-weight:800;color:${gtColor};font-family:monospace">${grandPct.toFixed(1)}%</td>
+    </tr></tbody></table>`;
+
+    sections+=`<div style="margin-bottom:32px">
+      <h2 style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)">✅ Compliance Analysis — Target: ${target}%</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid ${gtColor}">
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Overall Compliance</div>
+          <div style="font-size:24px;font-weight:800;color:${gtColor};font-family:monospace">${grandPct.toFixed(1)}%</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid #2dd4a0">
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Done</div>
+          <div style="font-size:24px;font-weight:800;color:#2dd4a0;font-family:monospace">${grandDone}</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid #ff5a5a">
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Missed</div>
+          <div style="font-size:24px;font-weight:800;color:#ff5a5a;font-family:monospace">${grandMissed}</div>
+        </div>
+      </div>
+      <div id="expM2BarChart" style="margin-bottom:20px"></div>
+      ${trendData&&trendData.length>1?'<div id="expM2TrendChart" style="margin-bottom:20px"></div>':''}
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;overflow-x:auto">${tblHTML}</div>
+    </div>`;
+  }
+
+  const html=buildExportHTML(title,sub,theme,sections,incM1,incM2,STATE.m1Results,STATE.m2Results);
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(title.replace(/\s+/g,'_')+'_OMAC.html');
+  a.click();
+  document.getElementById('exportStatus').className='alert alert-success';
+  document.getElementById('exportStatus').textContent='✅ Dashboard exported successfully!';
+  document.getElementById('exportStatus').classList.remove('hidden');
+}
+
+function buildExportHTML(title,sub,theme,sections,incM1,incM2,m1r,m2r){
+  const m1DataStr=incM1&&m1r?`const M1_RESULTS=${JSON.stringify(m1r)};`:'const M1_RESULTS=null;';
+  const m2DataStr=incM2&&m2r?`const M2_RESULTS=${JSON.stringify(m2r)};`:'const M2_RESULTS=null;';
+
+  let m2ChartData='';
+  if(incM2&&m2r){
+    const{rows,target,trendData}=m2r;
+    const sortedRows=[...rows].sort((a,b)=>b.pct-a.pct);
+    m2ChartData=`
+    // Compliance bar
+    if(document.getElementById('expM2BarChart')){
+      const barColors=M2_RESULTS.rows.sort((a,b)=>b.pct-a.pct).map(r=>r.pct>=${target}?'#2dd4a0':r.pct>=${target-10}?'#f5a623':'#ff5a5a');
+      const sr=M2_RESULTS.rows.sort((a,b)=>b.pct-a.pct);
+      Plotly.newPlot('expM2BarChart',[
+        {type:'bar',x:sr.map(r=>r.group),y:sr.map(r=>+r.pct.toFixed(1)),marker:{color:barColors,opacity:0.85},text:sr.map(r=>r.pct.toFixed(1)+'%'),textposition:'outside',name:'Compliance %'},
+        {type:'scatter',mode:'lines',x:sr.map(r=>r.group),y:sr.map(()=>M2_RESULTS.target),line:{color:'#f5a623',width:2,dash:'dot'},name:'Target'}
+      ],{height:360,paper_bgcolor:pc().bg,plot_bgcolor:pc().bg,font:{family:'Space Grotesk,sans-serif',color:pc().text,size:11},margin:{l:60,r:30,t:30,b:80},xaxis:{gridcolor:pc().grid,linecolor:pc().line,tickangle:-35},yaxis:{title:'Compliance %',range:[0,115],gridcolor:pc().grid,linecolor:pc().line},legend:{x:1,xanchor:'right',y:1,bgcolor:'rgba(0,0,0,0)'}},{responsive:true,displayModeBar:false});
+    }
+    ${m2r.trendData&&m2r.trendData.length>1?`
+    if(document.getElementById('expM2TrendChart')){
+      const td=M2_RESULTS.trendData;
+      Plotly.newPlot('expM2TrendChart',[
+        {type:'scatter',mode:'lines+markers+text',x:td.map(t=>t.time),y:td.map(t=>+t.pct.toFixed(1)),text:td.map(t=>t.pct.toFixed(1)+'%'),textposition:'top center',line:{color:'#3d7fff',width:2.5,shape:'spline'},marker:{size:9,color:td.map(t=>t.pct>=M2_RESULTS.target?'#2dd4a0':'#ff5a5a')},name:'Compliance %'},
+        {type:'scatter',mode:'lines',x:td.map(t=>t.time),y:td.map(()=>M2_RESULTS.target),line:{color:'#f5a623',width:1.5,dash:'dot'},name:'Target',hoverinfo:'skip'}
+      ],{height:320,paper_bgcolor:pc().bg,plot_bgcolor:pc().bg,font:{family:'Space Grotesk,sans-serif',color:pc().text,size:11},margin:{l:60,r:30,t:30,b:60},xaxis:{gridcolor:pc().grid,linecolor:pc().line},yaxis:{title:'Compliance %',range:[0,108],gridcolor:pc().grid,linecolor:pc().line},legend:{x:1,xanchor:'right',y:1,bgcolor:'rgba(0,0,0,0)'}},{responsive:true,displayModeBar:false});
+    }`:''}
+    `;
+  }
+
+  let m1ChartData='';
+  if(incM1&&m1r){
+    const{results,groups,yCols,metric,chartType}=m1r;
+    m1ChartData=`
+    if(document.getElementById('expM1Chart')){
+      const RESULTS=M1_RESULTS.results;
+      const GROUPS=M1_RESULTS.groups;
+      const YCOLS=M1_RESULTS.yCols;
+      const COLORS=['#3d7fff','#2dd4a0','#f5a623','#a78bfa','#ff5a5a','#22d3ee'];
+      const traces=YCOLS.map((yc,ci)=>({type:'bar',name:yc,x:GROUPS,y:GROUPS.map(g=>RESULTS[yc][g]!==null?+RESULTS[yc][g].toFixed(2):null),marker:{color:COLORS[ci%COLORS.length],opacity:0.85},text:GROUPS.map(g=>RESULTS[yc][g]!==null?RESULTS[yc][g].toFixed(2):''),textposition:'outside'}));
+      Plotly.newPlot('expM1Chart',traces,{height:420,paper_bgcolor:pc().bg,plot_bgcolor:pc().bg,barmode:'group',font:{family:'Space Grotesk,sans-serif',color:pc().text,size:11},margin:{l:80,r:30,t:30,b:90},xaxis:{gridcolor:pc().grid,linecolor:pc().line,tickangle:-35},yaxis:{title:'${metric}',gridcolor:pc().grid,linecolor:pc().line},legend:{x:1,xanchor:'right',y:1,bgcolor:'rgba(0,0,0,0)'}},{responsive:true,displayModeBar:false});
+    }`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="${theme}">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>${escHtml(title)}</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"><\/script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+[data-theme="dark"]{--bg:#0b0f17;--bg2:#111827;--bg3:#1a2035;--bg4:#243050;--border:#2a3550;--text:#e8eef8;--text2:#c5d0e8;--muted:#7a8aac;--card:#111827;}
+[data-theme="light"]{--bg:#f0f4fb;--bg2:#ffffff;--bg3:#e8eef8;--bg4:#d8e2f5;--border:#c5d0e8;--text:#0d1220;--text2:#1a2540;--muted:#4a5a7a;--card:#ffffff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);font-size:14px;transition:background .25s,color .25s;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3d7fff,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
+.ttl{font-size:14px;font-weight:700;margin-left:12px;}
+.sub{font-size:10px;color:var(--muted);margin-left:8px;font-family:'IBM Plex Mono',monospace;}
+.badge{background:rgba(61,127,255,.12);border:1px solid rgba(61,127,255,.3);color:#60a0ff;font-size:9px;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:1.5px;}
+.theme-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.theme-toggle button{padding:4px 12px;font-size:11px;font-weight:700;background:none;border:none;color:var(--muted);cursor:pointer;font-family:'Space Grotesk',sans-serif;border-radius:20px;}
+.theme-toggle button.active{background:#3d7fff;color:#fff;}
+.content{padding:24px;max-width:1400px;margin:0 auto;}
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+footer{text-align:center;padding:20px;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;border-top:1px solid var(--border);margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div style="display:flex;align-items:center">
+    <div class="logo">OA</div>
+    <div class="ttl">${escHtml(title)}</div>
+    ${sub?`<div class="sub">${escHtml(sub)}</div>`:''}
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="badge">OMAC ANALYTICS</div>
+    <div class="theme-toggle">
+      <button id="btnD" class="${theme==='dark'?'active':''}" onclick="setT('dark')">🌙</button>
+      <button id="btnL" class="${theme==='light'?'active':''}" onclick="setT('light')">☀️</button>
+    </div>
+  </div>
+</div>
+<div class="content">${sections}</div>
+<footer>OMAC DEVELOPERS · S M BAQIR &nbsp;|&nbsp; OMAC Universal Data Analyzer</footer>
+<script>
+${m1DataStr}
+${m2DataStr}
+function pc(){const d=document.documentElement.getAttribute('data-theme')==='dark';return{bg:d?'#111827':'#ffffff',text:d?'#e8eef8':'#0d1220',grid:d?'rgba(42,53,80,.5)':'rgba(197,208,232,.5)',line:d?'#2a3550':'#c5d0e8',muted:d?'#7a8aac':'#4a5a7a'};}
+function setT(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('btnD').classList.toggle('active',t==='dark');document.getElementById('btnL').classList.toggle('active',t==='light');initCharts();}
+function initCharts(){
+  ${m1ChartData}
+  ${m2ChartData}
+}
+window.onload=initCharts;
+<\/script>
+</body></html>`;
+}
+
+function previewDashboard(){
+  // Quick check
+  if(!STATE.m1Results&&!STATE.m2Results){
+    alert('Run analysis first before previewing.');return;
+  }
+  alert('Click "Download HTML Dashboard" to get the file, then open in any browser.');
+}
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function escHtml(s){
+  if(s===null||s===undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
